@@ -44,7 +44,7 @@ Module.register("weather",{
 		appendLocationNameToHeader: true,
 		calendarClass: "calendar",
 		tableClass: "small",
-		forecastLayout: "table",
+		forecastLayout: "plot",
 
 		onlyTemp: false,
 		showRainAmount: true,
@@ -128,33 +128,15 @@ Module.register("weather",{
 
 	// Add all the data to the template.
 	getTemplateData: function () {
-		var xticks = [];
-		var dates = [];
-		var Tmin = [];
-		var Tmax = [];
-		var count = 1;
-		var forecast = this.weatherProvider.weatherForecast();
-
-		for (const f of forecast) {
-			dates.push(f.date.format('ddd'));
-			Tmin.push(f.minTemperature);
-			Tmax.push(f.maxTemperature);
-			xticks.push(count);
-			count += 1;
-		}
 
 		return {
 			config: this.config,
 			current: this.weatherProvider.currentWeather(),
-			forecast: forecast,
+			forecast: this.weatherProvider.weatherForecast(),
 			indoor: {
 				humidity: this.indoorHumidity,
 				temperature: this.indoorTemperature
-			},
-			xticks: xticks,
-			dates: dates,
-			Tmin: Tmin,
-			Tmax: Tmax
+			}
 		}
 	},
 
@@ -239,7 +221,20 @@ Module.register("weather",{
 			return value.replace(/\./g, this.config.decimalSymbol);
 		}.bind(this));
 
-		this.nunjucksEnvironment().addFilter("plotForecast", function(x, dates, Tmin, Tmax, location) {
+		this.nunjucksEnvironment().addFilter("plotForecast", function(forecast, location) {
+			var x = [];
+			var dates = [];
+			var Tmin = [];
+			var Tmax = [];
+			var count = 1;
+
+			for (const f of forecast) {
+				dates.push(f.date.format('ddd'));
+				Tmin.push(f.minTemperature);
+				Tmax.push(f.maxTemperature);
+				x.push(count);
+				count += 1;
+			}
 
 			var font = {size: 18, color: "#ffffff"};
 			var lineshape = {shape: 'spline', color: "#ffffff", width: 3};

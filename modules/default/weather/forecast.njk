@@ -20,7 +20,7 @@
 			{% endfor %}
 		</table>
 	{% elif config.forecastLayout === "plot" %}
-		{{ xticks | plotForecast(dates, Tmin, Tmax, "module_7_weather") }}
+		{{ forecast | plotForecast("module_7_weather") }}
 	{% endif %}
 {% else %}
     <div class="dimmed light small">
