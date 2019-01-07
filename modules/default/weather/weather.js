@@ -44,6 +44,7 @@ Module.register("weather",{
 		appendLocationNameToHeader: true,
 		calendarClass: "calendar",
 		tableClass: "small",
+		forecastLayout: "table",
 
 		onlyTemp: false,
 		showRainAmount: true,
@@ -65,7 +66,8 @@ Module.register("weather",{
 			"moment.js",
 			"weatherprovider.js",
 			"weatherobject.js",
-			this.file("providers/" + this.config.weatherProvider.toLowerCase() + ".js")
+			this.file("providers/" + this.config.weatherProvider.toLowerCase() + ".js"),
+			"https://cdn.plot.ly/plotly-1.2.0.min.js"
 		];
 	},
 
@@ -126,14 +128,33 @@ Module.register("weather",{
 
 	// Add all the data to the template.
 	getTemplateData: function () {
+		var xticks = [];
+		var dates = [];
+		var Tmin = [];
+		var Tmax = [];
+		var count = 1;
+		var forecast = this.weatherProvider.weatherForecast();
+
+		for (const f of forecast) {
+			dates.push(f.date.format('ddd'));
+			Tmin.push(f.minTemperature);
+			Tmax.push(f.maxTemperature);
+			xticks.push(count);
+			count += 1;
+		}
+
 		return {
 			config: this.config,
 			current: this.weatherProvider.currentWeather(),
-			forecast: this.weatherProvider.weatherForecast(),
+			forecast: forecast,
 			indoor: {
 				humidity: this.indoorHumidity,
 				temperature: this.indoorTemperature
-			}
+			},
+			xticks: xticks,
+			dates: dates,
+			Tmin: Tmin,
+			Tmax: Tmax
 		}
 	},
 
@@ -216,6 +237,45 @@ Module.register("weather",{
 
 		this.nunjucksEnvironment().addFilter("decimalSymbol", function(value) {
 			return value.replace(/\./g, this.config.decimalSymbol);
+		}.bind(this));
+
+		this.nunjucksEnvironment().addFilter("plotForecast", function(x, dates, Tmin, Tmax, location) {
+
+			var font = {size: 18, color: "#ffffff"};
+			var lineshape = {shape: 'spline', color: "#ffffff", width: 3};
+			var layout = {
+				yaxis: {showgrid: true, tickfont: font, zeroline: false, title: "Temperature", titlefont: font},
+				xaxis: {showgrid: false, tickfont: font, zeroline: false, tickvals: x, ticktext: dates},
+				autosize: false,
+				width: x.length*75,
+				height: 300,
+				margin: {t: 20, b: 20, r: 20, l: 40, autoexpand: true},
+				modebar: {bgcolor: "#000000"},
+				plot_bgcolor: "#000000",
+				paper_bgcolor: "#000000",
+				showlegend: false
+			};
+			var seriesTmin = {
+				x: x,
+				y: Tmin,
+				mode: 'lines+markers',
+				name: 'spline',
+				line: lineshape,
+				marker: {color: "#ffffff", width: 10},
+				type: 'scatter'
+			};
+			var seriesTmax = {
+				x: x,
+				y: Tmax,
+				mode: 'lines+markers',
+				name: 'spline',
+				line: lineshape,
+				marker: {color: "#ffffff", width: 10},
+				type: 'scatter'
+			};
+			var data = [seriesTmin, seriesTmax];
+
+			var plot = Plotly.newPlot(location, data, layout, {displayModeBar: false});
 		}.bind(this));
 	}
 });
